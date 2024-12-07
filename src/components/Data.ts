@@ -1,10 +1,11 @@
-interface LocationDetail {
-    State: string
-    City: string
-    Country: string
-    Pin: string
-    Language: string
-  }
+export interface LocationDetail {
+  State: string
+  City: string
+  Country: string
+  Pin: string
+  Language: string
+}
+
 export const locationDetails: LocationDetail[] = [
     {
       State: "California",

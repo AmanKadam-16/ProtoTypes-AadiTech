@@ -1,7 +1,8 @@
-import { useState, useMemo } from 'react'
-import { ChevronDown, ChevronUp, Edit, Trash2 } from 'lucide-react'
+import { useState, useMemo, useCallback } from 'react'
+import { ChevronDown, ChevronUp, Edit, Trash2, Search } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import {
   Table,
   TableBody,
@@ -10,24 +11,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { locationDetails } from './Data'
-
-interface LocationDetail {
-  State: string
-  City: string
-  Country: string
-  Pin: string
-  Language: string
-}
-
+import { locationDetails, LocationDetail } from './Data'
 
 export default function LocationList() {
   const [sortConfig, setSortConfig] = useState<{ key: keyof LocationDetail; direction: 'asc' | 'desc' } | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
+  const [searchTerm, setSearchTerm] = useState('')
   const itemsPerPage = 10
 
+  const filteredLocations = useMemo(() => {
+    return locationDetails.filter((location) =>
+      Object.values(location).some((value) =>
+        value.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    )
+  }, [searchTerm])
+
   const sortedLocations = useMemo(() => {
-    let sortableItems = [...locationDetails]
+    let sortableItems = [...filteredLocations]
     if (sortConfig !== null) {
       sortableItems.sort((a, b) => {
         if (a[sortConfig.key] < b[sortConfig.key]) {
@@ -40,39 +41,56 @@ export default function LocationList() {
       })
     }
     return sortableItems
-  }, [sortConfig])
+  }, [sortConfig, filteredLocations])
 
   const paginatedLocations = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage
     return sortedLocations.slice(startIndex, startIndex + itemsPerPage)
   }, [currentPage, sortedLocations])
 
-  const totalPages = Math.ceil(locationDetails.length / itemsPerPage)
+  const totalPages = Math.ceil(sortedLocations.length / itemsPerPage)
 
-  const requestSort = (key: keyof LocationDetail) => {
+  const requestSort = useCallback((key: keyof LocationDetail) => {
     let direction: 'asc' | 'desc' = 'asc'
     if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
       direction = 'desc'
     }
     setSortConfig({ key, direction })
-  }
+  }, [sortConfig])
 
-  const handleEdit = (location: LocationDetail) => {
+  const handleEdit = useCallback((location: LocationDetail) => {
     console.log('Edit', location)
     // Implement edit functionality
-  }
+  }, [])
 
-  const handleDelete = (location: LocationDetail) => {
+  const handleDelete = useCallback((location: LocationDetail) => {
     console.log('Delete', location)
     // Implement delete functionality
-  }
+  }, [])
+
+  const handleSearch = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(event.target.value)
+    setCurrentPage(1) // Reset to first page when searching
+  }, [])
 
   return (
     <div className="container mx-auto p-4">
       <code>{'>> Demo for responsive views List | Cards'}</code>
       <h1 className="text-2xl font-bold mb-4">Location Details</h1>
       
-      {locationDetails.length === 0 && (
+      {/* Search Input */}
+      <div className="mb-4">
+      {/* <Search className="h-4 w-4 text-gray-500" /> */}
+        <Input
+          type="text"
+          placeholder="Search locations..."
+          value={searchTerm}
+          onChange={handleSearch}
+          className="max-w-sm"
+        />
+      </div>
+
+      {sortedLocations.length === 0 && (
         <p className="text-center text-gray-500 my-4">No location details available.</p>
       )}
 
@@ -101,9 +119,11 @@ export default function LocationList() {
                 <TableCell>
                   <Button variant="outline" size="icon" className="mr-2" onClick={() => handleEdit(location)}>
                     <Edit className="h-4 w-4" />
+                    <span className="sr-only">Edit</span>
                   </Button>
                   <Button variant="outline" size="icon" onClick={() => handleDelete(location)}>
                     <Trash2 className="h-4 w-4" />
+                    <span className="sr-only">Delete</span>
                   </Button>
                 </TableCell>
               </TableRow>
