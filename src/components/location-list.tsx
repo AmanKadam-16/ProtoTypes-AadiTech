@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react'
-import { ChevronDown, ChevronUp, Edit, Trash2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, Edit, Trash2, Search, ArrowDownAZ } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,10 +11,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { locationDetails, LocationDetail } from './Data'
 
 export default function LocationList() {
-  const [sortConfig, setSortConfig] = useState<{ key: keyof LocationDetail; direction: 'asc' | 'desc' } | null>(null)
+  const [sortConfig, setSortConfig] = useState<{ key: keyof LocationDetail; direction: 'asc' | 'desc' }>({ key: 'City', direction: 'asc' })
   const [currentPage, setCurrentPage] = useState(1)
   const [searchTerm, setSearchTerm] = useState('')
   const itemsPerPage = 10
@@ -29,17 +35,15 @@ export default function LocationList() {
 
   const sortedLocations = useMemo(() => {
     let sortableItems = [...filteredLocations]
-    if (sortConfig !== null) {
-      sortableItems.sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key]) {
-          return sortConfig.direction === 'asc' ? -1 : 1
-        }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
-          return sortConfig.direction === 'asc' ? 1 : -1
-        }
-        return 0
-      })
-    }
+    sortableItems.sort((a, b) => {
+      if (a[sortConfig.key] < b[sortConfig.key]) {
+        return sortConfig.direction === 'asc' ? -1 : 1
+      }
+      if (a[sortConfig.key] > b[sortConfig.key]) {
+        return sortConfig.direction === 'asc' ? 1 : -1
+      }
+      return 0
+    })
     return sortableItems
   }, [sortConfig, filteredLocations])
 
@@ -51,12 +55,11 @@ export default function LocationList() {
   const totalPages = Math.ceil(sortedLocations.length / itemsPerPage)
 
   const requestSort = useCallback((key: keyof LocationDetail) => {
-    let direction: 'asc' | 'desc' = 'asc'
-    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc'
-    }
-    setSortConfig({ key, direction })
-  }, [sortConfig])
+    setSortConfig(prevConfig => ({
+      key,
+      direction: prevConfig.key === key && prevConfig.direction === 'asc' ? 'desc' : 'asc'
+    }))
+  }, [])
 
   const handleEdit = useCallback((location: LocationDetail) => {
     console.log('Edit', location)
@@ -76,18 +79,37 @@ export default function LocationList() {
   return (
     <div className="container mx-auto p-4">
       <code>{'>> Demo for responsive views List | Cards'}</code>
-      <h1 className="text-2xl font-bold mb-4">Location Details</h1>
       
-      {/* Search Input */}
-      <div className="mb-4">
-      {/* <Search className="h-4 w-4 text-gray-500" /> */}
-        <Input
-          type="text"
-          placeholder="Search locations..."
-          value={searchTerm}
-          onChange={handleSearch}
-          className="max-w-sm"
-        />
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Location Details</h1>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <ArrowDownAZ className="h-5 w-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {Object.keys(locationDetails[0]).map((key) => (
+              <DropdownMenuItem key={key} onClick={() => requestSort(key as keyof LocationDetail)}>
+                Sort by {key} ({sortConfig.key === key && sortConfig.direction === 'asc' ? 'Z-A' : 'A-Z'})
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      
+      <div className="flex justify-between items-center gap-4 mb-4">
+        {/* Search Input */}
+        <div className="relative flex-grow">
+          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+          <Input
+            type="text"
+            placeholder="Search locations..."
+            value={searchTerm}
+            onChange={handleSearch}
+            className="pl-8 w-full"
+          />
+        </div>
       </div>
 
       {sortedLocations.length === 0 && (
@@ -102,7 +124,7 @@ export default function LocationList() {
               {locationDetails.length > 0 && Object.keys(locationDetails[0]).map((key) => (
                 <TableHead key={key} className="cursor-pointer" onClick={() => requestSort(key as keyof LocationDetail)}>
                   {key}
-                  {sortConfig?.key === key && (
+                  {sortConfig.key === key && (
                     sortConfig.direction === 'asc' ? <ChevronUp className="inline ml-1" /> : <ChevronDown className="inline ml-1" />
                   )}
                 </TableHead>
